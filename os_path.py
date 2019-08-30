@@ -28,13 +28,13 @@ def os_name():
   print(os_name)
   return os_name
 
-def platform():
+def platform_name():
   platform = sys.platform
   print(platform)
   return platform
 
 def platform_show():
-  platform = platform()
+  platform = platform_name()
   if platform.startswith('win'):
     print('Windows')
   elif platform.startswith('linux') or platform.startswith('cygwin'):
