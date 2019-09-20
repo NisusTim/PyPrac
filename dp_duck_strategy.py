@@ -79,10 +79,6 @@ if __name__ == '__main__':
   # Note: Calling lights_on() on CityDuck or VillageDuck will result in 
   #       Attributeerror
   robo = RobotDuck()
-  robo.quack()  # QUACK! QUACK!!
+  robo.quack()      # QUACK! QUACK!!
   robo.lights_on()  # Lights on for 10 seconds
-
-
-
-
 
