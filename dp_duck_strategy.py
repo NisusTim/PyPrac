@@ -30,7 +30,7 @@ class LightStrategyAbstract(object):
 
 class OnForTenSecondStrategy(LightStrategyAbstract):
   def lights_on(self):
-    print("Light on for 10 seconds")
+    print("Lights on for 10 seconds")
 
 ###
 # from dp_duck_strategy import LoudQuackStrategy
@@ -75,10 +75,22 @@ class RobotDuck(Duck):
   def __init__(self):
     super(RobotDuck, self).__init__(loud_quack, ten_seconds)
 
-if __name__ == '__main__':
+def main():
   # Note: Calling lights_on() on CityDuck or VillageDuck will result in 
   #       Attributeerror
-  robo = RobotDuck()
-  robo.quack()      # QUACK! QUACK!!
-  robo.lights_on()  # Lights on for 10 seconds
+  """
+  >>> robo = RobotDuck()
+  >>> robo.quack()
+  QUACK! QUACK!!
+  >>> robo.lights_on()
+  Lights on for 10 seconds
+  >>> city = CityDuck()
+  >>> city.lights_on()
+  Traceback (most recent call last):
+  AttributeError: 'NoneType' object has no attribute 'lights_on'
+  """
+
+if __name__ == '__main__':
+  import doctest
+  doctest.testmod()
 

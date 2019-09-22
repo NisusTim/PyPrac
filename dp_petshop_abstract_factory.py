@@ -1,6 +1,11 @@
 # Ref:
 # https://github.com/faif/python-patterns/blob/master/patterns/creational/abstract_factory.py
 
+"""
+Creational Pattern: Abstract Factory
+use a generic function with specific factories
+"""
+
 import random
 
 class PetShop:
@@ -18,7 +23,7 @@ class Dog:
     return "woof!"
 
   def __repr__(self):
-    fmt = '<{}: "{}">'
+    fmt = '{}: "{}"'
     return fmt.format("Dog", self.speak())
 
 class Cat:
@@ -26,7 +31,7 @@ class Cat:
     return "meow~"
 
   def __repr__(self):
-    fmt = '<{}: "{}">'
+    fmt = '{}: "{}"'
     return fmt.format("Cat", self.speak())
 
 def random_animal():
@@ -35,16 +40,17 @@ def random_animal():
 def main():
   """
   >>> PetShop(Cat)
-  <Cat: "meow~">
+  Cat: "meow~"
   >>> random.seed(1)
   >>> for i in range(5): PetShop(random_animal())
-  <Dog: "woof!">
-  <Dog: "woof!">
-  <Cat: "meow~">
-  <Dog: "woof!">
-  <Cat: "meow~">
+  Dog: "woof!"
+  Dog: "woof!"
+  Cat: "meow~"
+  Dog: "woof!"
+  Cat: "meow~"
   """
 
 if __name__ == '__main__':
   import doctest
   doctest.testmod()
+

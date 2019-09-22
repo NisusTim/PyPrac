@@ -1,6 +1,11 @@
 # Ref:
 # https://github.com/faif/python-patterns/blob/master/patterns/behavioral/state.py
 
+"""
+Behavioral Pattern: State
+logic is organized into a discrete number of potential states and the next state that can be transitioned to
+"""
+
 class State:
   def scan(self):
     self.pos += 1

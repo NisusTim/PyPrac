@@ -14,7 +14,7 @@ class Order:
     return self.price - discount
 
   def __repr__(self):
-    fmt = "<Price: {}, price after discount: {}>"
+    fmt = "Price: {}, price after discount: {}"
     return fmt.format(self.price, self.price_after_discount())
 
 def ten_percent_discount(order):
@@ -26,11 +26,11 @@ def on_sale_discount(order):
 def main():
   """
   >>> Order(100)
-  <Price: 100, price after discount: 100>
+  Price: 100, price after discount: 100
   >>> Order(100, discount_strategy=ten_percent_discount)
-  <Price: 100, price after discount: 90.0>
+  Price: 100, price after discount: 90.0
   >>> Order(100, discount_strategy=on_sale_discount)
-  <Price: 100, price after discount: 55.0>
+  Price: 100, price after discount: 55.0
   """
 
 if __name__ == '__main__':
