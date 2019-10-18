@@ -2,7 +2,7 @@ import can
 
 def recv_loop():
   bus = can.interface.Bus(bustype='pcan', channel='PCAN_USBBUS2', bitrate=250000)
-  bus.state = BusState.ACTIVE
+  bus.state = can.bus.BusState.ACTIVE
   try:
     while True:
       msg = bus.recv(1)
