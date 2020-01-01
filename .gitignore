@@ -2,3 +2,5 @@
 !.gitignore
 !*.py
 !*.c
+!*.qml
+!qt_official/
