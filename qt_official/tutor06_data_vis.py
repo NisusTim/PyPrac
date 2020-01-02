@@ -1,7 +1,10 @@
 # python3 tutor06_data_vis.py -f <*.csv>
+import sys
 import argparse  # accept and parse input from CLI
 import pandas as pd
 from PyQt5.QtCore import QDateTime, QTimeZone
+from PyQt5.QtWidgets import QApplication
+from tutor06_data_vis_window import MainWindow
 
 def transform_date(utc, timezone=None):
   utc_fmt = 'yyyy-MM-ddTHH:mm:ss.zzzZ'
@@ -23,4 +26,8 @@ if __name__ == '__main__':
   options.add_argument("-f", "--file", type=str, required=True)
   args = options.parse_args()
   data = read_data(args.file)
-  print(data)
+
+  app = QApplication(sys.argv)
+  window = MainWindow()
+  window.show()
+  sys.exit(app.exec_())
