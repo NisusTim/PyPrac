@@ -5,6 +5,7 @@ import pandas as pd
 from PyQt5.QtCore import QDateTime, QTimeZone
 from PyQt5.QtWidgets import QApplication
 from tutor06_data_vis_window import MainWindow
+from tutor06_data_vis_widget import Widget
 
 def transform_date(utc, timezone=None):
   utc_fmt = 'yyyy-MM-ddTHH:mm:ss.zzzZ'
@@ -28,6 +29,7 @@ if __name__ == '__main__':
   data = read_data(args.file)
 
   app = QApplication(sys.argv)
-  window = MainWindow()
+  widget = Widget(data)
+  window = MainWindow(widget)
   window.show()
   sys.exit(app.exec_())
