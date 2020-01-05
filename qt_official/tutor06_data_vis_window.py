@@ -1,4 +1,3 @@
-from PyQt5.QtCore import QRect, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QAction, qApp
 
 class MainWindow(QMainWindow):

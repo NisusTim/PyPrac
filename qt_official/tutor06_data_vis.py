@@ -2,13 +2,13 @@
 import sys
 import argparse  # accept and parse input from CLI
 import pandas as pd
-from PyQt5.QtCore import QDateTime, QTimeZone
 from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QDateTime, QTimeZone
 from tutor06_data_vis_window import MainWindow
 from tutor06_data_vis_widget import Widget
 
 def transform_date(utc, timezone=None):
-  utc_fmt = 'yyyy-MM-ddTHH:mm:ss.zzzZ'
+  utc_fmt = "yyyy-MM-ddTHH:mm:ss.zzzZ"
   new_date = QDateTime().fromString(utc, utc_fmt)
   if timezone:
     new_date.setTimeZone(timezone)

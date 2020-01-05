@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt5.QtGui import QColor
 
 class CustomTableModel(QAbstractTableModel):
@@ -26,8 +26,9 @@ class CustomTableModel(QAbstractTableModel):
     if role == Qt.DisplayRole:
       if column == 0:
         raw_date = self.input_dates[row]
-        date = "{}".format(raw_date.toPyDateTime())
-        return date[:-3]
+        # <QDateTime> to <str>
+        date = raw_date.toString("yyyy-MM-dd HH:mm:ss.zzz")
+        return date
       elif column == 1:
         return "{:.2f}".format(self.input_magnitudes[row])
     elif role == Qt.BackgroundRole:
@@ -43,4 +44,3 @@ class CustomTableModel(QAbstractTableModel):
       return ("Date", "Magnitude")[section]
     else:
       return "{}".format(section)
-
