@@ -1,5 +1,10 @@
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PyQt5.QtGui import QColor
+from qt_mod import QT_MOD
+if QT_MOD == 'PySide2':
+  from PySide2.QtCore import QAbstractTableModel, QModelIndex, Qt
+  from PySide2.QtGui import QColor
+elif QT_MOD == 'PyQt5':
+  from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
+  from PyQt5.QtGui import QColor
 
 class CustomTableModel(QAbstractTableModel):
 

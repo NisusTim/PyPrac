@@ -1,4 +1,8 @@
-from PyQt5.QtWidgets import QMainWindow, QAction, qApp
+from qt_mod import QT_MOD
+if QT_MOD == 'PySide2':
+  from PySide2.QtWidgets import QMainWindow, QAction, qApp
+elif QT_MOD == 'PyQt5':
+  from PyQt5.QtWidgets import QMainWindow, QAction, qApp
 
 class MainWindow(QMainWindow):
 

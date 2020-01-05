@@ -1,9 +1,20 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSizePolicy, QHeaderView, \
-  QTableView
-from PyQt5.QtGui import QPainter
-from PyQt5.QtCore import QDateTime, Qt
-from PyQt5 import QtChart
-from PyQt5.QtChart import QChart
+from qt_mod import QT_MOD
+if QT_MOD == 'PySide2':
+  from PySide2.QtWidgets import QWidget, QHBoxLayout, QSizePolicy, \
+    QHeaderView, QTableView
+  from PySide2.QtGui import QPainter
+  from PySide2.QtCore import QDateTime, Qt
+  from PySide2.QtCharts import QtCharts
+  QtChart = QtCharts
+  QChart = QtCharts.QChart
+elif QT_MOD == 'PyQt5':
+  from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSizePolicy, QHeaderView, \
+    QTableView
+  from PyQt5.QtGui import QPainter
+  from PyQt5.QtCore import QDateTime, Qt
+  from PyQt5 import QtChart
+  from PyQt5.QtChart import QChart
+
 from tutor06_data_vis_table_model import CustomTableModel
 
 class Widget(QWidget):

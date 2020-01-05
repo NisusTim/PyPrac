@@ -2,8 +2,15 @@
 import sys
 import argparse  # accept and parse input from CLI
 import pandas as pd
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QDateTime, QTimeZone
+
+from qt_mod import QT_MOD
+if QT_MOD == 'PySide2':
+  from PySide2.QtWidgets import QApplication
+  from PySide2.QtCore import QDateTime, QTimeZone
+elif QT_MOD == 'PyQt5':
+  from PyQt5.QtWidgets import QApplication
+  from PyQt5.QtCore import QDateTime, QTimeZone
+
 from tutor06_data_vis_window import MainWindow
 from tutor06_data_vis_widget import Widget
 
