@@ -1,0 +1,26 @@
+aenum
+filelock
+mypy_extensions<0.5.0,>=0.4.0
+wrapt~=1.10
+
+[:platform_system == "Windows"]
+pywin32
+windows-curses
+
+[neovi]
+filelock
+python-ics>=2.12
+
+[seeedstudio]
+pyserial>=3.0
+
+[serial]
+pyserial~=3.0
+
+[test]
+codecov~=2.0
+hypothesis
+pyserial~=3.0
+pytest-cov~=2.6
+pytest-timeout~=1.3
+pytest~=4.3

@@ -1,0 +1,16 @@
+
+class Bcolors:
+  GRAY =   '\033[90m'
+  RED =    '\033[91m'
+  GREEN =  '\033[92m'
+  YELLOW = '\033[92m'
+  BLUE =   '\033[94m'
+  PURPLE = '\033[95m'
+  CYAN =   '\033[96m'
+  BOLD =   '\033[;1m'
+  DARK =   '\033[;2m'
+  ITALIC = '\033[;3m'
+  UNDERL = '\033[;4m'
+  BLIND =  '\033[;5m'
+  REVSER = '\033[;7m'
+  DASH = '\033[;9m'
