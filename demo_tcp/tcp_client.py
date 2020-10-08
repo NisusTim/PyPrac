@@ -4,6 +4,7 @@ import sys     # stdin, argv
 import os      # read
 import helios
 import helios_h
+import cam_capture
 
 SELECT_FD = -1
 
@@ -16,6 +17,11 @@ def main(ip, port):
 
   read_fds = [sv_socket, sys.stdin]
   write_fds = [sv_socket]
+
+
+  path = os.path.dirname(os.path.abspath(__file__))
+  path = path + '/test.png'
+  cam = cam_capture.picture(0, path)
 
   while True:
     try:
