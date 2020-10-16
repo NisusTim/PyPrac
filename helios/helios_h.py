@@ -2,7 +2,9 @@ from ctypes import *  # c_ubyte, BigEndianStructure
 
 # define
 HEADER_MSIZE = 8
-PAYLOAD_MSIZE = 1024
+PAYLOAD_MSIZE = 1016
+PADDING_UNIT_MSIZE = 8
+PADDING_VALUE = 0x00
 
 # enum kDT
 kDT_NULL  = 0x00
@@ -46,20 +48,26 @@ class helios_hdr(BigEndianStructure):
   '''
   big-endian, 64-bit
   struct helios_hdr {
-    uint8_t dt;       /* Data type           */
-    uint8_t rw:   1;  /* Read/Write          */
-    uint8_t rt:   1;  /* Real time           */
-    uint8_t rsvd: 4;  /* Reserved            */
-    uint8_t pdt:  2;  /* Primitive data type */
-    uint8_t arg[6];   /* Helios arguments    */
-  }
+    uint8_t dt   :5;  /* Data type           */
+    uint8_t pdt  :2;  /* Primitive data type */
+    uint8_t rw   :1;  /* Read/Write          */
+    uint8_t pl   :7;  /* Payload length in 8 Bytes */
+    uint8_t done :1;  /* Done, last packet   */
+    union {
+      uint8_t arg[6]; /* Helios arguments    */
+      struct {
+          uint16_t pkt_csize;  /* Packet count */
+          uint8_t  pad[4];     /* Padding      */
+      };
+    };
+  };
   '''
   _pack_ = 1
   _fields_ = [
-    ('dt',   c_ubyte),
-    ('rw',   c_ubyte, 1),
-    ('rt',   c_ubyte, 1),
-    ('rsvd', c_ubyte, 4),
+    ('dt',   c_ubyte, 5),
     ('pdt',  c_ubyte, 2),
+    ('rw',   c_ubyte, 1),
+    ('pl',   c_ubyte, 7),
+    ('done', c_ubyte, 1),
     ('arg',  c_ubyte * 6)
   ]
