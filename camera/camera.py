@@ -6,35 +6,54 @@ import cv2
 import logging
 import time
 
-QUEUE_CSIZE_CAPACITY = 100
-COND_MUTEX = Condition()  # condition variable
+QUEUE_CSIZE_CAPACITY = 65536
+CNT_COND_MUTEX = Condition()
+IMG_COND_MUTEX = Condition()
 THREAD_SENTINEL = object()  # terminating flag
 
 DBGP = logging.debug
-# logging.basicConfig(level=logging.DEBUG)  # comment this line to disable DBGP
+logging.basicConfig(level=logging.DEBUG)  # comment this line to disable DBGP
 
 
 class Camera():
   '''
-  capture_image: producer, capture and enqueue image
-  save_image: consumer loop, dequeue image and save
+  capture_image(): producer, capture and enqueue image
+  save_image(): consumer loop, dequeue image and save
+  I/O performance:
+    device: Logitech C720
+                    platform,      cam.read(),   cam.imwrite()
+    res  640 x 480:    Linux,  avg. ~30.0 fps,  avg. ~66.7 fps
+    res 1280 x 720:    Linux,  avg. ~ 7.5 fps,  avg. ~28.6 fps
+    res  640 x 480:  Windows,  avg. ~33.3 fps,  avg.       fps
+    res 1280 x 720:  Windows,  avg. ~33.3 fps,  avg.       fps
+  Thread performance:
+  - Condition variable notify makes save_image() not repsonse immediately.
+    This should be improved or just remove IMG_COND_MUTEX acting as polling.
   '''
 
   def __init__(self, dev_no=0, save_dir=None,
-               res={'width': 1280, 'height': 720}):
+               res={'width': 640, 'height': 480}):
     self.dev_no = dev_no
     if save_dir is None:
       self.save_dir = os.path.dirname(os.path.abspath('__file__'))
     self.cam = self.new_cam(dev_no, res)
+    self.cnt_queue = Queue(QUEUE_CSIZE_CAPACITY)
     self.img_queue = Queue(QUEUE_CSIZE_CAPACITY)
     self.save_thrd = Thread(target=self.save_image,
                             args=(self.img_queue, self.save_dir))
+    self.cap_thrd = Thread(target=self.capture_image,
+                           args=(self.cam, self.cnt_queue, self.img_queue))
     self.save_thrd.start()
+    self.cap_thrd.start()
 
   @staticmethod
   def new_cam(dev_no, res):
-    ''' new object, set resolution and do first read (take longer time) '''
-    cam = cv2.VideoCapture(dev_no)
+    ''' new object, set resolution and do first read (take longer time)
+        Available backends:
+        CAP_FFMPEG, CAP_GSTREAMER, CAP_INTEL_MFX, CAP_V4L2, CAP_IMAGES,
+        CAP_OPENCV_MJPED
+        use CAP_V4L2 on Linux; CAP_DSHOW on Windows '''
+    cam = cv2.VideoCapture(dev_no, cv2.CAP_V4L2)  # for Linux platform
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, res['width'])
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, res['height'])
     DBGP("  Camera: new_cam  device_no: {}  resolution: {} x {}"
@@ -53,52 +72,61 @@ class Camera():
 
     while True:
 
-      COND_MUTEX.acquire()
+      IMG_COND_MUTEX.acquire()
       while img_queue.empty():
-        COND_MUTEX.wait()
+        IMG_COND_MUTEX.wait()
       t = time.time()
       img = img_queue.get()
-      COND_MUTEX.release()
+      IMG_COND_MUTEX.release()
 
       if img is THREAD_SENTINEL:
         break
       img_count += 1
-      file_name = "{}/{:03d}.jpg".format(save_dir, img_count)
+      file_name = "{}/{:03d}.png".format(save_dir, img_count)
       cv2.imwrite(file_name, img)
       DBGP("  Camera: time(save_image)     {:5.3f} sec"
            .format(time.time()-t))
       DBGP("  Camera: save_image  file_name: {}".format(file_name))
+
     DBGP("  Camera: save_imgae terminate")
 
   @staticmethod
-  def capture_image(cam, img_queue):
-    ''' to do: without queue.full() handle '''
-    COND_MUTEX.acquire()
-    t = time.time()
-    ok, img = cam.read()
-    img_queue.put(img)
-    COND_MUTEX.notify()
-    COND_MUTEX.release()
-    DBGP("  Camera: time(capture_image)  {:5.3f} sec".format(time.time()-t))
-    DBGP("  Camera: capture_image...")
+  def capture_image(cam, cnt_queue, img_queue):
+    ''' to do: queue.full() handle '''
+    while True:
 
-#     if not img_queue.full():
-#       t = time.time()
-#       ok, img = cam.read()
-#       if not ok:
-#         return
+      CNT_COND_MUTEX.acquire()
+      while cnt_queue.empty():
+        CNT_COND_MUTEX.wait()
+      t = time.time()
+      cnt = cnt_queue.get()
+      CNT_COND_MUTEX.release()
+
+      if cnt is THREAD_SENTINEL:
+        img_queue.put(THREAD_SENTINEL)
+        break
+
+      IMG_COND_MUTEX.acquire()
+      ok, img = cam.read()
+      img_queue.put(img)
+      IMG_COND_MUTEX.notify()
+      IMG_COND_MUTEX.release()
+      DBGP("  Camera: time(capture_image)  {:5.3f} sec".format(time.time()-t))
 
   def cap_image(self):
-    self.capture_image(self.cam, self.img_queue)
+    CNT_COND_MUTEX.acquire()
+    self.cnt_queue.put(None)
+    CNT_COND_MUTEX.notify()
+    CNT_COND_MUTEX.release()
 
   def close(self):
-    self.img_queue.put(THREAD_SENTINEL)
+    self.cnt_queue.put(THREAD_SENTINEL)
     self.del_cam(self.cam)
     self.save_thrd.join()
 
 
-def demo_camera(csize=QUEUE_CSIZE_CAPACITY):
-  c = Camera()
+def demo_camera(csize=20):
+  c = Camera(res={'width': 1280, 'height': 720})
   for i in range(csize):
     c.cap_image()
   c.close()
