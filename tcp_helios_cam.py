@@ -6,7 +6,6 @@ from helios.helios import Helios
 from camera.camera import Camera
 
 import time
-import fcntl, termios, array
 import socket
 
 SELECT_FD = -1
@@ -23,9 +22,7 @@ def main(ip, port):
 
   cam = Camera()
   global HE
-  HE = Helios(SELECT_FD, sv_socket, os.writev, os.read, cam.cap_image)
-  # HE = Helios(SELECT_FD, sv_socket, os.writev, os.read, None)
-  # HE = Helios(SELECT_FD, sv_socket, sv_socket.send, sv_socket.recv)
+  HE = Helios(SELECT_FD, os.writev, os.read, cam.cap_image)
 
   read_fds = [sv_socket, sys.stdin]
   write_fds = [sv_socket]
@@ -77,12 +74,6 @@ def cnsl_cmd_handle(msg):
       HE.close()
   else:
     print('no this command')
-
-def fionread(fd):
-  ''' @fd: file descriptor '''
-  sock_size = array.array('i', [0])
-  fcntl.ioctl(fd, termios.FIONREAD, sock_size)
-  return sock_size[0]
 
 
 if __name__ == '__main__':

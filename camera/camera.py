@@ -1,16 +1,17 @@
-import os  # path, dirname, abspath
+import os                     # path, dirname, abspath
 from threading import Thread
 from queue import Queue
-import cv2
+import cv2                    # VideoCapture(), imwrite()
 
 import logging  # debug, basicConfig
 from time import time
 
 QUEUE_CSIZE_CAPACITY = 65536
-THREAD_SENTINEL = object()  # terminating flag
+THREAD_SENTINEL = object()  # terminating flag via queue
 
 DBGP = logging.debug
-logging.basicConfig(level=logging.DEBUG)  # comment this line to disable DBGP
+# logging.basicConfig(level=logging.DEBUG)  # comment this line to disable DBGP
+# TODO: thread KeyboardInterrupt exception
 
 
 class Camera():

@@ -1,31 +1,30 @@
-from .helios_h import *
-import numpy as np
-import sys
-
-from threading import Thread, Condition
+import io                      # BytesIO
+from datetime import datetime  # now()
+from threading import Thread
 from queue import Queue
-import io  # BytesIO
-import logging
+from .helios_h import *
+
+import logging  # debug, basicConfig
 from time import time
 
 QUEUE_CSIZE_CAPACITY = 64*1024
 SOCK_RECV_BUFF_MSIZE = 64*1024
 IO_WRITE_BUFF_MSIZE = 4*1024
-COND_MUTEX = Condition()  # condition variable
-THREAD_SENTINEL = object()  # terminating flag
+THREAD_SENTINEL = object()  # terminating flag via queue
 
 DBGP = logging.debug
 # logging.basicConfig(level=logging.DEBUG)  # comment this line to disable DBGP
-
+# TODO: helios is abstract layer, something needs to be extracted like recv()
+#       helios should NOT know what fd is.
+# TODO:
 
 class Helios():
   pack_switch_action = {}
   unpack_switch_action = {}
   header = helios_hdr()
 
-  def __init__(self, fd, sv_socket, send_rout, recv_rout, adc_callback):
+  def __init__(self, fd, send_rout, recv_rout, adc_callback):
     self.fd = fd
-    self.sock = sv_socket
     self.sendv = send_rout  # writev(fd, [msg1, msg2, ...])
     self.recv = recv_rout   # read(fd, msize)
     self.init_switch_action()
@@ -33,10 +32,12 @@ class Helios():
     self.is_adc_first_pkt = True
     self.adc_first_pkt_callback = adc_callback
     self.recv_buff = b''
-    self.stream = io.BytesIO()
+    self.desc_wr_msize = 0
+    self.desc_stream = io.BytesIO()
+    self.log_stream = io.BytesIO()  # log: desc + adc
     self.log_queue = Queue(QUEUE_CSIZE_CAPACITY)
     self.save_thrd = Thread(target=self.save_log,
-                            args=(self.stream, self.log_queue))
+                            args=(self.log_stream, self.log_queue))
     self.save_thrd.start()
 
   @classmethod
@@ -90,7 +91,6 @@ class Helios():
     ''' '''
 
     self.recv_buff = self.recv_buff + self.recv(self.fd, SOCK_RECV_BUFF_MSIZE)
-    # self.recv_buff = self.recv_buff + self.sock.recv(SOCK_RECV_BUFF_MSIZE)
 
     while len(self.recv_buff) >= HEADER_MSIZE:
 
@@ -105,12 +105,12 @@ class Helios():
       self.payload = self.recv_buff[HEADER_MSIZE:HEADER_MSIZE+payload_msize]
       self.recv_buff = self.recv_buff[HEADER_MSIZE+payload_msize: ]
 
+      ''' if msg transmission is reliable protocol KeyError should NOT occurs '''
       try:
         self.unpack_switch_action[self.header.dt](self)
-        pass
       except KeyError:
-        print("  self.recv_buff size: {}".format(len(self.recv_buff)))
-        print("  msg len: {}  pl: {}  payload len: {}"
+        DBGP("  self.recv_buff size: {}".format(len(self.recv_buff)))
+        DBGP("  msg len: {}  pl: {}  payload len: {}"
               .format(len(msg), self.header.pl, len(self.payload)))
 
 
@@ -121,18 +121,17 @@ class Helios():
     pkt_csize = (pld_msize + PAYLOAD_MSIZE - 1) // PAYLOAD_MSIZE
 
     while True:
+
       if pld_msize > PAYLOAD_MSIZE:
         header.done = kOngo
         header.pl = (PAYLOAD_MSIZE + PADDING_UNIT_MSIZE - 1)  \
                     // PADDING_UNIT_MSIZE
-        msg = string_at(addressof(header), sizeof(helios_hdr))  \
-              + pld[ :PAYLOAD_MSIZE]
-        self.sock.send(msg)
-        # self.sendv(self.fd, [header, pld[ :PAYLOAD_MSIZE]])
+        self.sendv(self.fd, [header, pld[ :PAYLOAD_MSIZE]])
         pld = pld[PAYLOAD_MSIZE: ]
         pld_msize = pld_msize - PAYLOAD_MSIZE
         pkt_csize = pkt_csize - 1
       else:
+        ''' last one packet '''
         header.done = kDone
         header.pl = (pld_msize + PADDING_UNIT_MSIZE - 1) // PADDING_UNIT_MSIZE
         if pld_msize != header.pl * PADDING_UNIT_MSIZE:
@@ -140,13 +139,12 @@ class Helios():
                             header.pl * PADDING_UNIT_MSIZE - pld_msize)))
           pld = pld + paddings
           pld_msize = header.pl * PADDING_UNIT_MSIZE
-        msg = string_at(addressof(header), sizeof(helios_hdr))  \
-              + pld[ :PAYLOAD_MSIZE]
-        self.sock.send(msg)
-        # self.sendv(self.fd, [header,  pld[ :pld_msize]])
+        self.sendv(self.fd, [header,  pld[ :pld_msize]])
         pkt_csize = 0
-      if pkt_csize <= 0:
         return
+
+      if pkt_csize <= 0:
+        break
 
   def _unpack_mmap(self):
     pass
@@ -170,18 +168,23 @@ class Helios():
     pass
 
   def _unpack_play(self):
-    print('play')
+    pass
 
   def _unpack_cont(self):
     pass
 
   def _unpack_desc(self):
-    # print('unpack_desc')
-    # self.write_log(self.stream, self.payload, self.log_queue)
-    pass
+    ''' to log desc file '''
+    self.desc_wr_msize = self.desc_stream.write(self.payload)
+
+    if self.header.done == kDone:
+      file_name = "{}.desc".format(datetime.now().strftime("%Y%m%d_%H%M%S"))
+      with io.open(file_name, 'wb', IO_WRITE_BUFF_MSIZE) as f:
+        self.desc_stream.seek(0)
+        data = self.desc_stream.read(self.desc_wr_msize)
+        f.write(data)
 
   def _unpack_fdhr(self):
-    # print('unpack_fhdr')
     ''' @self.payload: if less than 1024 byte, padded
                        else, not defined!             '''
     TARGET_MSIZE = 1024
@@ -190,22 +193,13 @@ class Helios():
       paddings = bytes((PADDING_VALUE for i in range(append_msize)))
       self.payload = self.payload + paddings
 
-    self.write_log(self.stream, self.payload, self.log_queue)
-    pass
+    self.write_log(self.log_stream, self.payload, self.log_queue)
 
   def _unpack_adc(self):
-    # print('unpack_adc')
-    if len(self.payload) == 32 or len(self.payload) == 256:
+    if self.header.done == kDone:
       self.adc_first_pkt_callback()
 
-    self.write_log(self.stream, self.payload, self.log_queue)
-
-#     if self.header.done == kOngo and self.is_adc_first_pkt:
-#       self.adc_first_pkt_callback()
-#       self.is_adc_first_pkt = False
-#     elif self.header.done == kDone and not self.is_adc_first_pkt:
-#       self.is_adc_first_pkt = True
-    pass
+    self.write_log(self.log_stream, self.payload, self.log_queue)
 
   def _unpack_range(self):
     pass
@@ -303,11 +297,8 @@ class Helios():
   def write_log(stream, msg, log_queue):
     ''' producer to enqueue msg
         @stream: BytesIO.         '''
-    COND_MUTEX.acquire()
     write_msize = stream.write(msg)
     log_queue.put(write_msize)
-    COND_MUTEX.notify()
-    COND_MUTEX.release()
 
   @staticmethod
   def save_log(stream, log_queue):
@@ -317,22 +308,20 @@ class Helios():
     cnt = 0
     t = 0
 
-    with io.open('123.log', 'wb', IO_WRITE_BUFF_MSIZE) as f:
+    file_name = "{}.adc".format(datetime.now().strftime("%Y%m%d_%H%M%S"))
+    with io.open(file_name, 'wb', IO_WRITE_BUFF_MSIZE) as f:
       while True:
-        COND_MUTEX.acquire()
-        while log_queue.empty():
-          f.flush()
-          COND_MUTEX.wait()
+        f.flush()
         read_msize = log_queue.get()
         if read_msize is THREAD_SENTINEL:
           break
         stream.seek(0)
         data = stream.read(read_msize)
-        COND_MUTEX.release()
 
         f.write(data)
         total += read_msize
 
+        # for debug
         if read_msize == 32 or read_msize == 256:
           if cnt == 0:
             t = time()
@@ -340,3 +329,4 @@ class Helios():
           if cnt % 20 == 0:
             print("  save():  {:6.3f} sec  ({:5d})  {:12d} (+{:4d} bytes)"
                   .format(time() - t, cnt, total, read_msize))
+
